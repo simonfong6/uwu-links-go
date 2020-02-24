@@ -104,25 +104,33 @@ func createClient() {
 	// Close client when done.
 	defer client.Close()
 
-	_, _, err = client.Collection("users").Add(ctx, map[string]interface{}{
-		"first": "Ada",
-		"last":  "Lovelace",
-		"born":  1815,
-	})
-	if err != nil {
-		log.Fatalf("Failed adding alovelace: %v", err)
-	}
+	/*
+			_, _, err = client.Collection("users").Add(ctx, map[string]interface{}{
+				"first": "Ada",
+				"last":  "Lovelace",
+				"born":  1815,
+			})
+			if err != nil {
+				log.Fatalf("Failed adding alovelace: %v", err)
+		    }
+	*/
 
-	iter := client.Collection("users").Documents(ctx)
+	iter := client.Collection("links").Documents(ctx)
+	start := 0
 	for {
 		doc, err := iter.Next()
+		if start > 5 {
+			break
+		}
 		if err == iterator.Done {
 			break
 		}
 		if err != nil {
 			log.Fatalf("Failed to iterate: %v", err)
 		}
+		start++
 		fmt.Println(doc.Data())
+		fmt.Println(doc.Id)
 	}
 
 }
@@ -140,5 +148,5 @@ func main() {
 	http.HandleFunc("/save/", makeHandler(saveHandler))
 
 	fmt.Println("Server listening on port ", portNumber)
-	log.Fatal(http.ListenAndServe(":"+portNumber, nil))
+	// log.Fatal(http.ListenAndServe(":"+portNumber, nil))
 }
