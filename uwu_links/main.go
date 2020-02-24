@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"io"
@@ -8,6 +9,9 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+
+	"cloud.google.com/go/firestore"
+	"google.golang.org/api/iterator"
 )
 
 type Page struct {
@@ -16,7 +20,7 @@ type Page struct {
 }
 
 var templates = template.Must(template.ParseFiles("html/edit.html", "html/view.html"))
-var validPath = regexp.MustCompile("^/(edit|save|view|go)/([a-zA-Z0-9]+)$")
+var validPath = regexp.MustCompile("^/(edit|save|view|go|r)/([a-zA-Z0-9]+)$")
 
 func (p *Page) save() error {
 	filename := "pages/" + p.Title + ".txt"
@@ -82,11 +86,55 @@ func goHandler(w http.ResponseWriter, r *http.Request, keyword string) {
 	io.WriteString(w, keyword)
 }
 
+func redirectHandler(w http.ResponseWriter, r *http.Request, keyword string) {
+	http.Redirect(w, r, "https://www.google.com/", http.StatusFound)
+}
+
+func createClient() {
+	// Sets your Google Cloud Platform project ID.
+	projectID := "uwu-links"
+
+	// Get a Firestore client.
+	ctx := context.Background()
+	client, err := firestore.NewClient(ctx, projectID)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+
+	// Close client when done.
+	defer client.Close()
+
+	_, _, err = client.Collection("users").Add(ctx, map[string]interface{}{
+		"first": "Ada",
+		"last":  "Lovelace",
+		"born":  1815,
+	})
+	if err != nil {
+		log.Fatalf("Failed adding alovelace: %v", err)
+	}
+
+	iter := client.Collection("users").Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Fatalf("Failed to iterate: %v", err)
+		}
+		fmt.Println(doc.Data())
+	}
+
+}
+
 func main() {
+
+	createClient()
 
 	portNumber := "3330"
 
 	http.HandleFunc("/go/", makeHandler(goHandler))
+	http.HandleFunc("/r/", makeHandler(redirectHandler))
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))
