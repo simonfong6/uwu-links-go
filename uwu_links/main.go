@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,7 +16,7 @@ type Page struct {
 }
 
 var templates = template.Must(template.ParseFiles("html/edit.html", "html/view.html"))
-var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9]+)$")
+var validPath = regexp.MustCompile("^/(edit|save|view|go)/([a-zA-Z0-9]+)$")
 
 func (p *Page) save() error {
 	filename := "pages/" + p.Title + ".txt"
@@ -77,9 +78,15 @@ func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
 	http.Redirect(w, r, "/view/"+title, http.StatusFound)
 }
 
+func goHandler(w http.ResponseWriter, r *http.Request, keyword string) {
+	io.WriteString(w, keyword)
+}
+
 func main() {
+
 	portNumber := "3330"
 
+	http.HandleFunc("/go/", makeHandler(goHandler))
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))
